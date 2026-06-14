@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Automation Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Custom 2D Cursor -->
+    <div id="custom-cursor" class="custom-cursor"></div>
+
+    <div class="background-effects">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>AWS Automation Hub</h1>
+            <p>Securely manage your S3 & EC2 resources</p>
+        </header>
+
+        <!-- Credentials Section -->
+        <section class="glass-panel" id="credentials-panel">
+            <h2><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> <span id="cred-title">IAM Credentials</span></h2>
+            <p class="subtitle">Credentials are sent securely and never stored on the server.</p>
+            <form id="creds-form">
+                <div class="input-group">
+                    <label>User Type</label>
+                    <div class="user-type-toggle">
+                        <label class="radio-label">
+                            <input type="radio" name="userType" value="iam" checked>
+                            IAM User
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="userType" value="root">
+                            Root User
+                        </label>
+                    </div>
+                </div>
+
+                <div id="root-warning" class="hidden alert-warning">
+                    <strong>Warning:</strong> Using Root User credentials is a significant security risk. It is highly recommended to use an IAM User with limited permissions.
+                </div>
+
+                <div class="input-group">
+                    <label for="accessKey">Access Key ID</label>
+                    <input type="password" id="accessKey" required placeholder="AKIAIOSFODNN7EXAMPLE">
+                </div>
+                <div class="input-group">
+                    <label for="secretKey">Secret Access Key</label>
+                    <input type="password" id="secretKey" required placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
+                </div>
+                <div class="input-group">
+                    <label for="region">Region</label>
+                    <select id="region">
+                        <option value="us-east-1">us-east-1 (N. Virginia)</option>
+                        <option value="us-east-2">us-east-2 (Ohio)</option>
+                        <option value="us-west-1">us-west-1 (N. California)</option>
+                        <option value="us-west-2">us-west-2 (Oregon)</option>
+                        <option value="ap-south-1">ap-south-1 (Mumbai)</option>
+                        <option value="eu-west-1">eu-west-1 (Ireland)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" id="verify-btn">Verify Credentials</button>
+            </form>
+            <div id="auth-status" class="status-message"></div>
+        </section>
+
+        <!-- Dashboard Section (Hidden initially) -->
+        <div id="dashboard" class="hidden">
+            <div class="tabs">
+                <button class="tab-btn active" data-target="s3-panel">S3 Buckets</button>
+                <button class="tab-btn" data-target="ec2-panel">EC2 Instances</button>
+            </div>
+
+            <!-- S3 Panel -->
+            <section class="glass-panel tab-content active" id="s3-panel">
+                <div class="panel-header">
+                    <h2>S3 Management</h2>
+                    <button id="refresh-s3" class="btn-icon" title="Refresh">↻</button>
+                </div>
+                
+                <div class="action-card">
+                    <h3>Create New Bucket</h3>
+                    <form id="s3-form" class="inline-form">
+                        <input type="text" id="bucketName" required placeholder="Enter unique bucket name">
+                        <button type="submit" class="btn-primary">Create Bucket</button>
+                    </form>
+                </div>
+
+                <div class="list-container">
+                    <h3>Your Buckets</h3>
+                    <div id="s3-list" class="resource-list">
+                        <div class="loading">No buckets loaded yet...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EC2 Panel -->
+            <section class="glass-panel tab-content" id="ec2-panel">
+                <div class="panel-header">
+                    <h2>EC2 Management</h2>
+                    <button id="refresh-ec2" class="btn-icon" title="Refresh">↻</button>
+                </div>
+
+                <div class="action-card">
+                    <h3>Create Security Group (SSH & HTTP)</h3>
+                    <form id="sg-form" class="inline-form">
+                        <input type="text" id="sgName" required placeholder="MyWebSecurityGroup">
+                        <button type="submit" class="btn-primary">Create SG</button>
+                    </form>
+                </div>
+
+                <div class="action-card">
+                    <h3>Launch Instance</h3>
+                    <form id="ec2-form" class="grid-form">
+                        <div class="input-group">
+                            <label for="instanceName">Instance Name</label>
+                            <input type="text" id="instanceName" required placeholder="MyWebServer">
+                        </div>
+                        <div class="input-group">
+                            <label for="amiId">AMI ID</label>
+                            <input type="text" id="amiId" required placeholder="ami-0c55b159cbfafe1f0">
+                        </div>
+                        <div class="input-group">
+                            <label for="instanceType">Instance Type</label>
+                            <select id="instanceType">
+                                <option value="t2.micro">t2.micro (Free Tier)</option>
+                                <option value="t3.micro">t3.micro</option>
+                                <option value="t3.small">t3.small</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="keyName">Key Pair</label>
+                            <select id="keyName">
+                                <option value="None">None (No SSH Access)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="securityGroup">Security Group</label>
+                            <select id="securityGroup">
+                                <option value="None">Default</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="instanceCount">Number of Instances</label>
+                            <input type="number" id="instanceCount" min="1" max="10" value="1" required>
+                        </div>
+                        <button type="submit" class="btn-primary full-width">Launch Instance(s)</button>
+                    </form>
+                </div>
+
+                <div class="list-container">
+                    <h3>Your Instances</h3>
+                    <div id="ec2-list" class="resource-list">
+                        <div class="loading">No instances loaded yet...</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- S3 Object Modal -->
+    <div id="s3-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 800px; margin: 5% auto; width: 90%;">
+            <div class="panel-header">
+                <h2 id="modal-bucket-name">Bucket</h2>
+                <button id="close-s3-modal" class="btn-icon">&times;</button>
+            </div>
+            
+            <div class="action-card">
+                <h3>Upload File</h3>
+                <form id="s3-upload-form" class="inline-form">
+                    <input type="file" id="s3-file-input" required>
+                    <button type="submit" class="btn-primary">Upload</button>
+                </form>
+            </div>
+            
+            <div class="list-container">
+                <h3>Files</h3>
+                <div id="s3-objects-list" class="resource-list" style="max-height: 400px;">
+                    <!-- Objects will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EC2 File Manager Modal -->
+    <div id="ec2-modal" class="modal hidden">
+        <div class="modal-content glass-panel" style="max-width: 800px; margin: 5% auto; width: 90%;">
+            <div class="panel-header">
+                <h2 id="modal-ec2-name">EC2 Files</h2>
+                <button id="close-ec2-modal" class="btn-icon">&times;</button>
+            </div>
+            
+            <div class="action-card">
+                <h3>Upload File to EC2</h3>
+                <form id="ec2-upload-form" class="inline-form">
+                    <input type="text" id="ec2-target-path" placeholder="/home/ubuntu/filename.txt" required style="flex: 1;">
+                    <input type="file" id="ec2-file-input" required>
+                    <button type="submit" class="btn-primary">Upload via SSM</button>
+                </form>
+            </div>
+
+            <div class="action-card">
+                <h3>List Directory</h3>
+                <form id="ec2-list-form" class="inline-form">
+                    <input type="text" id="ec2-dir-path" placeholder="/home/ubuntu" value="/home/ubuntu" required style="flex: 2;">
+                    <button type="submit" class="btn-primary">List Files</button>
+                </form>
+            </div>
+            
+            <div class="list-container">
+                <h3>Terminal Output</h3>
+                <div id="ec2-terminal-output" style="max-height: 300px; overflow-y: auto; background: #1e1e1e; color: #0f0; font-family: monospace; padding: 10px; white-space: pre-wrap; border-radius: 8px;">
+                    <!-- Terminal output will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=1"></script>
+</body>
+</html>
