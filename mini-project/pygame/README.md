@@ -30,7 +30,7 @@ This project is written in standard Python and uses a few libraries:
 
 ---
 
-How to Setup and Run in VS Code
+How to Setup and Run in VS Codegit add mini-project/pygame/
 
 Here are the step-by-step commands to run the project. Open your VS Code terminal (Ctrl + Shift + `) and run them.
 
